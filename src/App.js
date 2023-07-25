@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { AiOutlinePlus } from "react-icons/ai";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Todo from "./Todo";
 import { db } from "./firebase";
+import { showToast } from "./components/Toast";
 import {
   collection,
   onSnapshot,
@@ -11,7 +10,9 @@ import {
   updateDoc,
   doc,
   addDoc,
+  deleteDoc,
 } from "firebase/firestore";
+import { ToastContainer } from "react-toastify";
 
 const style = {
   bg: `h-screen w-screen p-4 bg-gradient-to-r from-[#2F80ED] to-[#1CB5E0]`,
@@ -23,18 +24,6 @@ const style = {
   count: `text-center p-2`,
 };
 function App() {
-  const successNotify = () => {
-    toast.success("Todo has been successfully added!", {
-      position: "bottom-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-  };
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
 
@@ -50,21 +39,28 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  const toggleComplete = async (todo) => {
-    await updateDoc(doc(db, "todos", todo.id), {
-      completed: !todo.completed,
-    });
-  };
-
   const createTodo = async (e) => {
     if (input === "") {
-      return successNotify();
+      showToast("You cannot add empty Todo", "error");
+      return;
     }
     await addDoc(collection(db, "todos"), {
       text: input,
       completed: false,
     });
     setInput("");
+    showToast("Todo successfully added!", "success");
+  };
+
+  const toggleComplete = async (todo) => {
+    await updateDoc(doc(db, "todos", todo.id), {
+      completed: !todo.completed,
+    });
+  };
+
+  const deleteTodo = async (id) => {
+    await deleteDoc(doc(db, "todos", id));
+    showToast("Todo successfully deleted!", "success");
   };
 
   return (
@@ -91,23 +87,19 @@ function App() {
         </form>
         <ul>
           {todos.map((todo, index) => (
-            <Todo key={index} todo={todo} toggleComplete={toggleComplete} />
+            <Todo
+              key={index}
+              toggleComplete={toggleComplete}
+              todo={todo}
+              deleteTodo={deleteTodo}
+            />
           ))}
         </ul>
-        <p className={style.count}>You have {todos.length} todos</p>
+        {todos.length < 1 ? null : (
+          <p className={style.count}>You have {todos.length} todos</p>
+        )}
       </div>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
+      <ToastContainer />
     </div>
   );
 }
