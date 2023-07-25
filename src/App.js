@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { AiOutlinePlus } from "react-icons/ai";
 import Todo from "./Todo";
 import { db } from "./firebase";
@@ -20,12 +20,15 @@ const style = {
   heading: `text-3xl font-bold text-center text-gray-800 p-2`,
   form: `flex justify-between`,
   input: `border p-2 w-full text-xl`,
-  button: `border p-4 ml-2 bg-purple-500 text-slate-100`,
+  button: `border p-4 ml-2 bg-purple-500 text-slate-100 rounded-lg`,
+  buttonSec: `border-none w-[150px] h-[50px] bg-gradient-to-r from-purple-300 to-purple-500 rounded-lg text-white font-semibold`,
   count: `text-center p-2`,
+  centeredDiv: `flex flex-col space-y-5 items-center justify-center mt-5 mb-5 md:flex-row md:space-x-10 md:space-y-0`,
 };
 function App() {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     const q = query(collection(db, "todos"));
@@ -62,6 +65,18 @@ function App() {
     await deleteDoc(doc(db, "todos", id));
     showToast("Todo successfully deleted!", "success");
   };
+  const filteredTodos = useMemo(
+    () =>
+      todos.filter((todo) => {
+        if (filter === "active") {
+          return !todo.completed;
+        } else if (filter === "completed") {
+          return todo.completed;
+        }
+        return true;
+      }),
+    [todos, filter]
+  );
 
   return (
     <div className={style.bg}>
@@ -86,9 +101,9 @@ function App() {
           </button>
         </form>
         <ul>
-          {todos.map((todo, index) => (
+          {filteredTodos.map((todo) => (
             <Todo
-              key={index}
+              key={todo.id}
               toggleComplete={toggleComplete}
               todo={todo}
               deleteTodo={deleteTodo}
@@ -98,6 +113,23 @@ function App() {
         {todos.length < 1 ? null : (
           <p className={style.count}>You have {todos.length} todos</p>
         )}
+        <div className={style.centeredDiv}>
+          <button
+            className={style.buttonSec}
+            onClick={() => setFilter("active")}
+          >
+            Active
+          </button>
+          <button
+            className={style.buttonSec}
+            onClick={() => setFilter("completed")}
+          >
+            Completed
+          </button>
+          <button className={style.buttonSec} onClick={() => setFilter("all")}>
+            All Todos
+          </button>
+        </div>
       </div>
       <ToastContainer />
     </div>
